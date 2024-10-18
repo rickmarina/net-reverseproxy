@@ -1,6 +1,7 @@
 using System.Net.Sockets;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using static Enums;
 
 internal class CopyStream
 {
@@ -20,24 +21,24 @@ internal class CopyStream
         using (NetworkStream stream2 = _info.DestClient.GetStream())
         {
             // Copiar datos en ambas direcciones de forma simultánea
-            Task task1 = CopyDataAsync(stream1, stream2);
-            Task task2 = CopyDataAsync(stream2, stream1);
+            Task task1 = CopyDataAsync(stream1, stream2, FLOW_STREAM_DIRECTION.CLIENT);
+            Task task2 = CopyDataAsync(stream2, stream1, FLOW_STREAM_DIRECTION.SERVER);
 
             try {
                 // Esperar a que ambas tareas finalicen
                 await Task.WhenAll(task1, task2);
             } catch (Exception ex) { 
-                _logger.LogError($"error startcopyasync: {ex.Message}");
+                _logger.LogError($"{ex.Message}");
             } finally {
                 // Cerrar las conexiones cuando una de las tareas finalice
-                _logger.LogInformation($"cerramos las conexiones source/dest de info");
+                _logger.LogInformation($"Closed links with {_info}");
                 _info.CloseConnections();
             }
 
         }
     }
 
-    private async Task CopyDataAsync(Stream source, Stream destination)
+    private async Task CopyDataAsync(Stream source, Stream destination, FLOW_STREAM_DIRECTION flowStreamDirection)
     {
         byte[] buffer = new byte[8192]; // Tamaño del buffer de transferencia
         int bytesRead;
@@ -49,6 +50,11 @@ internal class CopyStream
             {
                 var receivedContent = Encoding.UTF8.GetString(buffer, 0, buffer.Length);
                 Console.WriteLine($"<- {receivedContent}");
+
+                if (flowStreamDirection == FLOW_STREAM_DIRECTION.CLIENT)
+                    StatsSingleton.GetInstance().bytesReceivedFromClients += bytesRead;
+                else 
+                    StatsSingleton.GetInstance().bytesReceivedFromServers += bytesRead;
 
                 await destination.WriteAsync(buffer, 0, bytesRead);
                 await destination.FlushAsync();

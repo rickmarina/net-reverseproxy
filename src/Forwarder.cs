@@ -48,6 +48,8 @@ internal class Forwarder
                 };
                 _logger.LogInformation($"Cliente conectado. {info.ToString()}");
 
+                StatsSingleton.GetInstance().clientsConnected++;
+
                 Clients[id] = info;
 
                 // Manejar la conexión con el cliente de forma asíncrona
@@ -78,6 +80,7 @@ internal class Forwarder
         }
         finally
         {
+            StatsSingleton.GetInstance().clientsConnected++;
             _logger.LogInformation($"Cliente desconectado.{info.ToString()}");
             Clients.Remove(info.Id, out _);
 
