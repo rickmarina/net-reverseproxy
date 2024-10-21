@@ -1,5 +1,6 @@
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using static Enums;
 
@@ -40,7 +41,7 @@ internal class CopyStream
 
     private async Task CopyDataAsync(Stream source, Stream destination, FLOW_STREAM_DIRECTION flowStreamDirection)
     {
-        byte[] buffer = new byte[8192]; // Tamaño del buffer de transferencia
+        byte[] buffer = new byte[16384]; // Tamaño del buffer de transferencia
         int bytesRead;
 
         try
@@ -49,14 +50,23 @@ internal class CopyStream
             while ((bytesRead = await source.ReadAsync(buffer, 0, buffer.Length)) > 0)
             {
                 var receivedContent = Encoding.UTF8.GetString(buffer, 0, buffer.Length);
-                Console.WriteLine($"<- {receivedContent}");
+                Console.WriteLine($"<- {flowStreamDirection} {receivedContent}");
 
                 if (flowStreamDirection == FLOW_STREAM_DIRECTION.CLIENT)
                     StatsSingleton.GetInstance().bytesReceivedFromClients += bytesRead;
                 else 
                     StatsSingleton.GetInstance().bytesReceivedFromServers += bytesRead;
 
-                await destination.WriteAsync(buffer, 0, bytesRead);
+                //Realizar manipulación del stream del cliente 
+                string toSend = receivedContent;
+                if (flowStreamDirection == FLOW_STREAM_DIRECTION.CLIENT) {
+                    toSend = TransformClientRequest(receivedContent); 
+                    Console.WriteLine($"-> {flowStreamDirection} {toSend}");
+                } 
+
+                var toSendBytes = Encoding.UTF8.GetBytes(toSend); 
+
+                await destination.WriteAsync(toSendBytes, 0, toSendBytes.Length);
                 await destination.FlushAsync();
             }
         }
@@ -64,5 +74,9 @@ internal class CopyStream
         {
             throw new CopyStreamException("Copystream aborted", ex);
         }
+    }
+
+    private string TransformClientRequest(string receivedContent) { 
+        return Regex.Replace(receivedContent, "Host:.*\n", "");
     }
 }

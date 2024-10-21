@@ -1,8 +1,8 @@
 internal class HttpRawParser { 
     private readonly string _raw;
-    public RequestUri Uri { get; set; }
-    public RequestHeader Header { get; set; }
-    public RequestBody Body { get; set; }
+    public RequestUri RequestUri { get; set; }
+    public RequestHeader RequestHeader { get; set; }
+    public RequestBody RequestBody { get; set; }
 
     private string[] lines;
     
@@ -10,16 +10,16 @@ internal class HttpRawParser {
     {
         _raw = raw; 
 
-        lines = raw.Split(new[] { "\\n", "\\r", "\r\n"}, StringSplitOptions.None);
+        lines = raw.Split(["\\n", "\\r", "\r\n"], StringSplitOptions.None);
 
-        Uri = new RequestUri(lines); 
-        Header = new RequestHeader(lines);
-        Body = new RequestBody(lines);
+        RequestUri = new RequestUri(lines); 
+        RequestHeader = new RequestHeader(lines);
+        RequestBody = new RequestBody(lines);
     }
 
     public override string ToString()
     {
-        return $"Uri: {Uri.ToString()} Headers: {Header.ToString()} Body: {Body.ToString()}";
+        return $"Uri: {RequestUri.ToString()} Headers: {RequestHeader.ToString()} Body: {RequestBody.ToString()}";
     }
 
 

@@ -9,8 +9,8 @@ public class HttpRawParserTest {
 
         var parser = new HttpRawParser(rawRequest); 
 
-        Assert.Equal("/home",parser.Uri.Url);
-        Assert.Equal("", parser.Body.Body);
+        Assert.Equal("/home",parser.RequestUri.Url);
+        Assert.Equal("", parser.RequestBody.Body);
     }
 
 }
