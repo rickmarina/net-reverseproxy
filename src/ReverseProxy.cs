@@ -6,7 +6,7 @@ internal class ReverseProxy {
     private readonly ILogger<ReverseProxy> _logger; 
     private readonly Forwarder _forwarder; 
     private readonly PortMap _portMap; 
-    public Dictionary<IPEndPoint, Forwarder> ForwarderMap { get; private set; }
+    public Dictionary<HostSetting, Forwarder> ForwarderMap { get; private set; }
     public ReverseProxy(ILogger<ReverseProxy> logger, Forwarder forwarder, PortMap portMap)
     {
         _logger = logger; 

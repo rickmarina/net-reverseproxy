@@ -23,7 +23,7 @@ internal class Forwarder
         Clients = new ConcurrentDictionary<Guid, ClientInfo>();
 
         Map = map;
-        Server = new TcpListener(map.From);
+        Server = new TcpListener(map.From.GetIPEndpoint());
     }
 
     public async Task<int> StartServer()
@@ -44,7 +44,9 @@ internal class Forwarder
                 {
                     Id = id,
                     SourceClient = cliente,
-                    DestClient = new TcpClient()
+                    DestClient = new TcpClient(),
+                    DestClientSSL = false,
+                    DestclientHost = string.Empty
                 };
                 _logger.LogInformation($"Cliente conectado. {info.ToString()}");
 
@@ -62,14 +64,25 @@ internal class Forwarder
 
     private async Task HandleClientAsync(ClientInfo info)
     {
-
         var nextEndpoint = Map.GetNextEndPoint();
-        await info.DestClient.ConnectAsync(nextEndpoint);
+        info.DestClientSSL = nextEndpoint.ssl;
+        info.DestclientHost = nextEndpoint.host;
+
+        await info.DestClient.ConnectAsync(nextEndpoint.GetIPEndpoint());
 
         CopyStream copyStream = new CopyStream(_loggerFactory.CreateLogger<CopyStream>(),info);
         try
         {
-            await copyStream.StartCopyAsync();
+            Console.WriteLine($"ssl {nextEndpoint.ssl}");
+            if (nextEndpoint.ssl) {
+                _logger.LogInformation($"SSL comunications");
+                await copyStream.StartCopyAsyncSSL();
+                }
+            else {
+                _logger.LogInformation($"No SSL comunications");
+
+                await copyStream.StartCopyAsync();
+                }
         }
         catch (CopyStreamException cex)
         {

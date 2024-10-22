@@ -1,5 +1,4 @@
-﻿using System.Net;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
@@ -13,9 +12,8 @@ var configuration = new ConfigurationBuilder()
 
 var settings = configuration.Get<Settings>();
 
-IPEndPoint from = new IPEndPoint(IPAddress.Parse(settings!.config.listen.ip), settings.config.listen.port);
-IPEndPoint[] to = settings.config.forwards.Select(x=> new IPEndPoint(IPAddress.Parse(x.Split(":")[0]), int.Parse(x.Split(":")[1]))).ToArray();
-
+HostSetting from = settings!.config.listen;
+List<HostSetting> to = settings.config.forwards;
 
 // DI 
 var serviceProvider = new ServiceCollection()

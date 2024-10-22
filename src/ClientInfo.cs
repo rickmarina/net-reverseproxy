@@ -4,6 +4,8 @@ internal class ClientInfo
 {
     public Guid Id { get; set; }
     public required TcpClient DestClient { get; set; }
+    public required bool DestClientSSL {get;set;}
+    public required string DestclientHost {get;set;}
     public required TcpClient SourceClient { get; set; }
 
     public override string ToString()
@@ -12,10 +14,14 @@ internal class ClientInfo
     }
 
     public void CloseConnections() {
-        if (SourceClient.Connected)
+        if (SourceClient.Connected) {
             SourceClient.Close();
-        if (DestClient.Connected)
+            SourceClient.Dispose();
+        }
+        if (DestClient.Connected) {
             DestClient.Close();
+            DestClient.Dispose();
+        }
     }
 
 }

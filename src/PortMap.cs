@@ -4,23 +4,23 @@ using Microsoft.Extensions.Logging;
 internal class PortMap
 {
     private int index = 0;
-    public IPEndPoint From { get; private set; }
-    public IPEndPoint[] Endpoints { get; set; }
+    public HostSetting From { get; private set; }
+    public List<HostSetting> Endpoints { get; set; }
     private readonly ILogger<PortMap> _logger;
 
-    public PortMap(ILogger<PortMap> logger, IPEndPoint from, IPEndPoint[] endpoints)
+    public PortMap(ILogger<PortMap> logger, HostSetting from, List<HostSetting> endpoints)
     {
         _logger = logger;
         From = from;
         Endpoints = endpoints;
     }
 
-    public IPEndPoint GetNextEndPoint()
+    public HostSetting GetNextEndPoint()
     {
         if (!Endpoints.Any())
             throw new InvalidOperationException("Empty endpoints list.");
 
-         index = (index + 1) % Endpoints.Length; //Round robin
+         index = (index + 1) % Endpoints.Count; //Round robin
 
         return Endpoints[index];
     }

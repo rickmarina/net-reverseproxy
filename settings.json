@@ -1,7 +1,15 @@
 {
     "version": 1.0,
     "config": {
-        "listen": { "ip": "127.0.0.1", "port":8787},
-        "forwards": ["142.250.184.3:80"]
+        "listen": { "name": "localhost", 
+                    "host": "localhost",
+                    "ip": "127.0.0.1",
+                    "port":443,
+                    "ssl": false},
+        "forwards": [{"name": "Google", 
+                      "host": "www.google.com",
+                      "ip": "142.250.184.3",
+                      "port":443,
+                      "ssl": true}]
     }
 }
