@@ -6,9 +6,9 @@
                     "ip": "127.0.0.1",
                     "port":443,
                     "ssl": false},
-        "forwards": [{"name": "Google", 
-                      "host": "www.google.com",
-                      "ip": "142.250.184.3",
+        "forwards": [{"name": "wikipedia", 
+                      "host": "www.wikipedia.org",
+                      "ip": "185.15.58.224",
                       "port":443,
                       "ssl": true}]
     }

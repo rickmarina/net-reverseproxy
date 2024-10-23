@@ -11,9 +11,8 @@ internal class Forwarder
     public TcpListener Server { get; set; }
     public Task? ServerTask { get; private set; }
     public ConcurrentDictionary<Guid, ClientInfo> Clients { get; set; }
-    private readonly ILoggerFactory _loggerFactory; 
+    private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<Forwarder> _logger;
-
     public Forwarder(ILogger<Forwarder> logger, ILoggerFactory loggerFactory, PortMap map)
     {
         _logger = logger;
@@ -38,6 +37,7 @@ internal class Forwarder
             while (true)
             {
                 TcpClient cliente = await Server.AcceptTcpClientAsync();
+
 
                 Guid id = Guid.NewGuid();
                 var info = new ClientInfo()
@@ -70,25 +70,28 @@ internal class Forwarder
 
         await info.DestClient.ConnectAsync(nextEndpoint.GetIPEndpoint());
 
-        CopyStream copyStream = new CopyStream(_loggerFactory.CreateLogger<CopyStream>(),info);
+        CopyStream copyStream = new CopyStream(_loggerFactory.CreateLogger<CopyStream>(), info);
         try
         {
             Console.WriteLine($"ssl {nextEndpoint.ssl}");
-            if (nextEndpoint.ssl) {
+            if (nextEndpoint.ssl)
+            {
                 _logger.LogInformation($"SSL comunications");
                 await copyStream.StartCopyAsyncSSL();
-                }
-            else {
+            }
+            else
+            {
                 _logger.LogInformation($"No SSL comunications");
 
                 await copyStream.StartCopyAsync();
-                }
+            }
         }
         catch (CopyStreamException cex)
         {
             _logger.LogError($"Error CopyStream: {cex.Message}");
         }
-        catch (Exception ex) { 
+        catch (Exception ex)
+        {
             _logger.LogError($"General error. {ex.Message}");
         }
         finally
@@ -101,50 +104,50 @@ internal class Forwarder
         }
     }
 
-    
-            // private async Task HandleClientAsync(ClientInfo info)
-            // {
-            //     NetworkStream stream = info.SourceClient.GetStream();
-            //     byte[] buffer = new byte[1024];
-            //     int receivedBytes;
 
-            //     try
-            //     {
-            //         string responseHtml = "<html><body><h1>Welcome to netReverseProxy!</h1><p>Online and ready</p></body></html>";
-            //         string response = "HTTP/1.1 200 OK\r\n" +
-            //                           "Content-Type: text/html; charset=UTF-8\r\n" +
-            //                           $"Content-Length: {Encoding.UTF8.GetByteCount(responseHtml)}\r\n" +
-            //                           "Connection: close\r\n" +
-            //                           "\r\n" +
-            //                           responseHtml;
+    // private async Task HandleClientAsync(ClientInfo info)
+    // {
+    //     NetworkStream stream = info.SourceClient.GetStream();
+    //     byte[] buffer = new byte[1024];
+    //     int receivedBytes;
 
-            //         byte[] responseBytes = Encoding.UTF8.GetBytes(response);
-            //         await stream.WriteAsync(responseBytes, 0, responseBytes.Length);
+    //     try
+    //     {
+    //         string responseHtml = "<html><body><h1>Welcome to netReverseProxy!</h1><p>Online and ready</p></body></html>";
+    //         string response = "HTTP/1.1 200 OK\r\n" +
+    //                           "Content-Type: text/html; charset=UTF-8\r\n" +
+    //                           $"Content-Length: {Encoding.UTF8.GetByteCount(responseHtml)}\r\n" +
+    //                           "Connection: close\r\n" +
+    //                           "\r\n" +
+    //                           responseHtml;
 
-            //         while ((receivedBytes = await stream.ReadAsync(buffer, 0, buffer.Length)) != 0)
-            //         {
-            //             string mensaje = Encoding.UTF8.GetString(buffer, 0, receivedBytes);
-            //             _logger.LogTrace($"<- [{receivedBytes}bytes] {mensaje}");
+    //         byte[] responseBytes = Encoding.UTF8.GetBytes(response);
+    //         await stream.WriteAsync(responseBytes, 0, responseBytes.Length);
 
-            //             byte[] respuesta = Encoding.UTF8.GetBytes("Mensaje recibido\r\n");
-            //             await stream.WriteAsync(respuesta, 0, respuesta.Length);
-            //         }
-            //     }
-            //     catch (Exception ex)
-            //     {
-            //         _logger.LogError($"Error: {ex.Message}");
-            //     }
-            //     finally
-            //     {
-            //         _logger.LogInformation($"Cliente desconectado.{info.ToString()}");
-            //         Clients.Remove(info.Id, out _);
+    //         while ((receivedBytes = await stream.ReadAsync(buffer, 0, buffer.Length)) != 0)
+    //         {
+    //             string mensaje = Encoding.UTF8.GetString(buffer, 0, receivedBytes);
+    //             _logger.LogTrace($"<- [{receivedBytes}bytes] {mensaje}");
 
-            //         stream.Close();
-            //         info.SourceClient.Close();
+    //             byte[] respuesta = Encoding.UTF8.GetBytes("Mensaje recibido\r\n");
+    //             await stream.WriteAsync(respuesta, 0, respuesta.Length);
+    //         }
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         _logger.LogError($"Error: {ex.Message}");
+    //     }
+    //     finally
+    //     {
+    //         _logger.LogInformation($"Cliente desconectado.{info.ToString()}");
+    //         Clients.Remove(info.Id, out _);
 
-            //     }
-            // }
+    //         stream.Close();
+    //         info.SourceClient.Close();
 
-    
+    //     }
+    // }
+
+
 
 }

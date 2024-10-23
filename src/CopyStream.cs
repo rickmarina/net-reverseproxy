@@ -11,11 +11,20 @@ internal class CopyStream
     private readonly ClientInfo _info;
     private readonly ILogger<CopyStream> _logger;
     private readonly X509Certificate2 _certificate; 
+    private readonly StreamWriter _logfileClient; 
+    private readonly StreamWriter _logfileServer; 
+
 
     public CopyStream(ILogger<CopyStream> logger, ClientInfo info)
     {
         _logger = logger;
         _info = info;
+
+        _logfileClient = new StreamWriter($"c:\\logs\\FROMCLIENT_{_info.Id}.log", true, Encoding.UTF8);
+        _logfileClient.AutoFlush = true;
+
+        _logfileServer = new StreamWriter($"c:\\logs\\FROMSERVER_{_info.Id}.log", true, Encoding.UTF8);
+        _logfileServer.AutoFlush = true;
 
         // Cargar el certificado TLS
         _certificate = new X509Certificate2("certificate/certificate.pfx", "123456");
@@ -61,6 +70,7 @@ internal class CopyStream
         await serverSslStream.AuthenticateAsClientAsync(_info.DestclientHost);
 
         // Copiar datos en ambas direcciones de forma simultánea
+        _logger.LogInformation($"Enlazando streams entre cliente y servidor...");
         Task task1 = CopyDataAsync(clientSslStream, serverSslStream, FLOW_STREAM_DIRECTION.CLIENT);
         Task task2 = CopyDataAsync(serverSslStream, clientSslStream, FLOW_STREAM_DIRECTION.SERVER);
 
@@ -87,13 +97,53 @@ internal class CopyStream
             // Leer y escribir datos hasta que no haya más
             while ((bytesRead = await source.ReadAsync(buffer, 0, buffer.Length)) > 0)
             {
-                var receivedContent = Encoding.UTF8.GetString(buffer, 0, buffer.Length);
-                Console.WriteLine($"<- {flowStreamDirection} {receivedContent}");
+                var receivedContent = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                //Console.WriteLine($"<- {flowStreamDirection} {receivedContent}");
 
-                if (flowStreamDirection == FLOW_STREAM_DIRECTION.CLIENT)
+                _logger.LogInformation($"Received {bytesRead} bytes from {flowStreamDirection}");
+
+                if (flowStreamDirection == FLOW_STREAM_DIRECTION.CLIENT) {
+                    _logfileClient.Write($"<- {flowStreamDirection} {receivedContent}");
                     StatsSingleton.GetInstance().bytesReceivedFromClients += bytesRead;
-                else 
+                }
+                else {
+                    _logfileServer.Write($"<- {flowStreamDirection} {receivedContent}");
                     StatsSingleton.GetInstance().bytesReceivedFromServers += bytesRead;
+                }
+
+                //Realizar manipulación del stream del cliente 
+                if (flowStreamDirection == FLOW_STREAM_DIRECTION.CLIENT) {
+                    string toSend = receivedContent;
+                    toSend = TransformClientRequest(receivedContent); 
+                    var toSendBytes = Encoding.UTF8.GetBytes(toSend); 
+                    await destination.WriteAsync(toSendBytes, 0, toSendBytes.Length);
+                    await destination.FlushAsync();
+                } 
+                else { //Los datos del servidor se envían sin manipular al cliente, al manipular el cliente no estaba interpretando bien el cambio
+                    await destination.WriteAsync(buffer, 0, bytesRead);
+                    await destination.FlushAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new CopyStreamException("Copystream aborted", ex);
+        }
+    }
+
+    [Obsolete("No utilizar")]
+    private async Task CopyDataAsyncSsl(SslStream source, SslStream destination, FLOW_STREAM_DIRECTION flowStreamDirection)
+    {
+        byte[] buffer = new byte[8192]; // Tamaño del buffer de transferencia
+        int bytesRead;
+
+        try
+        {
+            // Leer y escribir datos hasta que no haya más
+            while ((bytesRead = await source.ReadAsync(buffer, 0, buffer.Length)) > 0)
+            {
+                var receivedContent = Encoding.UTF8.GetString(buffer, 0, buffer.Length);
+                Console.WriteLine($"<- {flowStreamDirection} {receivedContent.Substring(0,500)}");
 
                 //Realizar manipulación del stream del cliente 
                 string toSend = receivedContent;
@@ -110,38 +160,6 @@ internal class CopyStream
         }
         catch (Exception ex)
         {
-            throw new CopyStreamException("Copystream aborted", ex);
-        }
-    }
-
-    private async Task CopyDataAsyncSsl(SslStream source, SslStream destination, FLOW_STREAM_DIRECTION flowStreamDirection)
-    {
-        byte[] buffer = new byte[8192]; // Tamaño del buffer de transferencia
-        int bytesRead;
-
-        try
-        {
-            // Leer y escribir datos hasta que no haya más
-            while ((bytesRead = await source.ReadAsync(buffer, 0, buffer.Length)) > 0)
-            {
-                var receivedContent = Encoding.UTF8.GetString(buffer, 0, buffer.Length);
-                Console.WriteLine($"<- {flowStreamDirection} {receivedContent.Substring(0,1500)}");
-
-                //Realizar manipulación del stream del cliente 
-                // string toSend = receivedContent;
-                // if (flowStreamDirection == FLOW_STREAM_DIRECTION.CLIENT) {
-                //     toSend = TransformClientRequest(receivedContent); 
-                //     Console.WriteLine($"-> {flowStreamDirection} {toSend}");
-                // } 
-
-                // var toSendBytes = Encoding.UTF8.GetBytes(toSend); 
-
-                await destination.WriteAsync(buffer, 0, bytesRead);
-                await destination.FlushAsync();
-            }
-        }
-        catch (Exception ex)
-        {
             throw new CopyStreamException("Copystream ssl aborted", ex);
         }
     }
@@ -150,7 +168,7 @@ internal class CopyStream
         return true; // Aceptar cualquier certificado de cliente (puede ser ajustado según las necesidades)
     }
     private string TransformClientRequest(string clientContentMessage) { 
-        clientContentMessage = Regex.Replace(clientContentMessage, "Host:.*\n", "Host: www.google.com\n");
+        clientContentMessage = Regex.Replace(clientContentMessage, "Host:.*\n", $"Host: {_info.DestclientHost}\r\n");
         // clientContentMessage = Regex.Replace(clientContentMessage, "Accept-Encoding:*\n","Accept-Encoding: gzip\n");
 
         return clientContentMessage;
