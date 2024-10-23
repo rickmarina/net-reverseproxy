@@ -1,0 +1,4 @@
+TODO LIST: 
+
+- HotReloading de la configuración 
+- Configuración de ficheros de log con la comunicación recibida en los streams de datos 
